@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>TerraPivot | GeoSpatial Tools</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Favicon SVG (tetap sama, nggak perlu diterjemahkan) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><ellipse cx='50' cy='55' rx='40' ry='15' fill='none' stroke='%234a90e2' stroke-width='8' stroke-dasharray='15 10' transform='rotate(-15 50 55)'/><path d='M50 15 C35 15 25 27 25 40 C25 60 50 85 50 85 C50 85 75 60 75 40 C75 27 65 15 50 15 Z' fill='%23e94560'/><circle cx='50' cy='38' r='10' fill='white'/></svg>" />
+    <style>
+        /* Gaya untuk tombol bahasa di sidebar */
+        .lang-switch {
+            display: flex;
+            gap: 8px;
+            margin-top: auto; /* dorong ke bawah */
+            padding-top: 15px;
+            border-top: 1px solid #2a2a4a;
+        }
+        .lang-btn {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 10px;
+            text-align: center;
+            background: #052680;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        .lang-btn:hover {
+            background: #1f2e54;
+        }
+        .lang-btn.lang-active {
+            border-color: #e94560;
+            background: #3e6ee9;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- SIDEBAR KIRI -->
+    <div class="sidebar">
+        <!-- LOGO TerraPivot -->
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #2a2a4a;">
+            <svg width="34" height="34" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="50" cy="55" rx="40" ry="15" fill="none" stroke="#4a90e2" stroke-width="8" stroke-dasharray="15 10" transform="rotate(-15 50 55)"/>
+                <path d="M50 15 C35 15 25 27 25 40 C25 60 50 85 50 85 C50 85 75 60 75 40 C75 27 65 15 50 15 Z" fill="#e94560"/>
+                <circle cx="50" cy="38" r="10" fill="#1a1a2e"/>
+            </svg>
+            <h2 style="margin: 0; font-size: 24px; color: white; letter-spacing: 0.5px;">
+                Terra<span style="color: #e94560;">Pivot</span>
+            </h2>
+        </div>
+
+        <!-- Menu navigasi (teks diambil dari i18n.js) -->
+        <a href="index.html" class="menu-item active" data-i18n="dashboard">🏠 Dashboard</a>
+        <a href="format-converter.html" class="menu-item" data-i18n="format_converter">📁 Format Converter</a>
+        <a href="projection.html" class="menu-item" data-i18n="projection">📍 Projection</a>
+        <a href="#" class="menu-item" data-i18n="geometry_ops">🔧 Geometry Ops (Segera)</a>
+        <a href="#" class="menu-item" data-i18n="attribute">📊 Atribut (Segera)</a>
+        <a href="#" class="menu-item" data-i18n="external_data">🌐 External Data (Segera)</a>
+
+        <!-- Tombol switch bahasa -->
+        <div class="lang-switch">
+            <button id="btn-lang-id" class="lang-btn lang-active" onclick="switchLanguage('id')" title="Bahasa Indonesia">IDN</button>
+            <button id="btn-lang-en" class="lang-btn" onclick="switchLanguage('en')" title="English">ENG</button>
+        </div>
+    </div>
+
+    <!-- KONTEN UTAMA -->
+    <div class="content">
+        <div class="dashboard-header">
+            <h1 data-i18n="dashboard_title">TerraPivot</h1>
+            <p style="color: gray;" data-i18n="dashboard_subtitle">GeoSpatial Tools - Semua utilitas spasial yang lu butuhin, ada di sini.</p>
+        </div>
+
+        <!-- KATEGORI 1: FORMAT CONVERSION -->
+        <div class="category-section">
+            <div class="category-title" data-i18n="category_format">1. Format Conversion</div>
+            <div class="card-grid">
+                <a href="format-converter.html#vector" class="tool-card">
+                    <div class="tool-header"><div class="tool-icon">🔄</div><h3 class="tool-title" data-i18n="vector_title">Vector Converter</h3></div>
+                    <p class="tool-desc" data-i18n="vector_desc">Konversi cepat antar format SHP, GeoJSON, KML, dan Geopackage.</p>
+                </a>
+                <a href="format-converter.html#csv" class="tool-card">
+                    <div class="tool-header"><div class="tool-icon">📍</div><h3 class="tool-title" data-i18n="csv_title">CSV to Spatial</h3></div>
+                    <p class="tool-desc" data-i18n="csv_desc">Ubah tabel koordinat Excel/CSV jadi data spasial point.</p>
+                </a>
+                <a href="format-converter.html#dms" class="tool-card">
+                    <div class="tool-header"><div class="tool-icon">📐</div><h3 class="tool-title" data-i18n="dms_title">DMS to DD</h3></div>
+                    <p class="tool-desc" data-i18n="dms_desc">Konversi derajat-menit-detik dari tabel lapangan ke Desimal (DD).</p>
+                </a>
+                <a href="format-converter.html#s2t" class="tool-card">
+                    <div class="tool-header"><div class="tool-icon">📄</div><h3 class="tool-title" data-i18n="s2t_title">Spatial to Table</h3></div>
+                    <p class="tool-desc" data-i18n="s2t_desc">Ekstrak atribut, koordinat (WGS84 & UTM) dari Spasial ke Excel murni.</p>
+                </a>
+            </div>
+        </div>
+
+                <!-- KATEGORI 2: PROJECTION & COORDINATES -->
+        <div class="category-section">
+            <div class="category-title" data-i18n="category_projection">2. Projection & Coordinates</div>
+            <div class="card-grid">
+                <!-- Kartu WGS84 ↔ UTM / TM3 (sudah ada) -->
+                <a href="projection.html" class="tool-card">
+                    <div class="tool-header"><div class="tool-icon">🌐</div><h3 class="tool-title" data-i18n="projection_title">WGS84 ↔ UTM / TM3</h3></div>
+                    <p class="tool-desc" data-i18n="projection_desc">Transformasi WGS84, UTM, TM3, deteksi zona otomatis, dan pemrosesan batch.</p>
+                </a>
+                <!-- Kartu Coordinate Converter (akan segera dibuat) -->
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">🧮</div><h3 class="tool-title" data-i18n="coord_title">Konverter Koordinat</h3></div>
+                    <p class="tool-desc" data-i18n="coord_desc">Masukkan koordinat manual (DD, DMS, UTM, TM3) dan dapatkan semua format lainnya secara instan. (Segera)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- KATEGORI 3: GEOMETRY OPS (COMING SOON) -->
+        <div class="category-section">
+            <div class="category-title" data-i18n="category_geometry">3. Geometry Ops</div>
+            <div class="card-grid">
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">🔧</div><h3 class="tool-title" data-i18n="fix_simplify_title">Fix & Simplify</h3></div>
+                    <p class="tool-desc" data-i18n="fix_simplify_desc">Perbaikan geometri dan penyederhanaan poligon. (Segera)</p>
+                </div>
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">🧩</div><h3 class="tool-title" data-i18n="dissolve_merge_title">Dissolve & Merge</h3></div>
+                    <p class="tool-desc" data-i18n="dissolve_merge_desc">Gabung poligon berdasarkan atribut. (Segera)</p>
+                </div>
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">📌</div><h3 class="tool-title" data-i18n="centroid_title">Centroid Extractor</h3></div>
+                    <p class="tool-desc" data-i18n="centroid_desc">Ambil titik tengah dari poligon. (Segera)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- KATEGORI 4: ATRIBUT & STANDARISASI (COMING SOON) -->
+        <div class="category-section">
+            <div class="category-title" data-i18n="category_attribute">4. Atribut & Standarisasi</div>
+            <div class="card-grid">
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">🔤</div><h3 class="tool-title" data-i18n="text_case_title">Text Case Converter</h3></div>
+                    <p class="tool-desc" data-i18n="text_case_desc">Ubah teks atribut jadi UPPERCASE, lowercase, atau Title Case. (Segera)</p>
+                </div>
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">📋</div><h3 class="tool-title" data-i18n="field_standard_title">Field Standardizer</h3></div>
+                    <p class="tool-desc" data-i18n="field_standard_desc">Rename, hapus, atau urutkan kolom atribut secara massal. (Segera)</p>
+                </div>
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">📏</div><h3 class="tool-title" data-i18n="area_length_title">Area & Length Calculator</h3></div>
+                    <p class="tool-desc" data-i18n="area_length_desc">Hitung luas (Ha) atau panjang (km) otomatis. (Segera)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- KATEGORI 5: EXTERNAL DATA SOURCING (COMING SOON) -->
+        <div class="category-section">
+            <div class="category-title" data-i18n="category_external">5. External Data Sourcing</div>
+            <div class="card-grid">
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">🗺️</div><h3 class="tool-title" data-i18n="osm_extract_title">OSM Quick Extractor</h3></div>
+                    <p class="tool-desc" data-i18n="osm_extract_desc">Tarik data OpenStreetMap sesuai area. (Segera)</p>
+                </div>
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">⛰️</div><h3 class="tool-title" data-i18n="dem_download_title">Elevation DEM Downloader</h3></div>
+                    <p class="tool-desc" data-i18n="dem_download_desc">Download DEM (SRTM) berdasarkan poligon. (Segera)</p>
+                </div>
+                <div class="tool-card disabled">
+                    <div class="tool-header"><div class="tool-icon">🛰️</div><h3 class="tool-title" data-i18n="gee_preview_title">GEE Imagery Preview</h3></div>
+                    <p class="tool-desc" data-i18n="gee_preview_desc">Lihat citra satelit terbaru dari Google Earth Engine. (Segera)</p>
+                </div>
+            </div>
+        </div>
+
+        <footer data-i18n="footer">&copy; 2026 TerraPivot. Dibuat dengan ❤️</footer>
+    </div>
+
+    <!-- Muat sistem penerjemah -->
+    <script src="i18n.js"></script>
+</body>
+</html>

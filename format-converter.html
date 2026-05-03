@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Format Converter | TerraPivot</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><ellipse cx='50' cy='55' rx='40' ry='15' fill='none' stroke='%234a90e2' stroke-width='8' stroke-dasharray='15 10' transform='rotate(-15 50 55)'/><path d='M50 15 C35 15 25 27 25 40 C25 60 50 85 50 85 C50 85 75 60 75 40 C75 27 65 15 50 15 Z' fill='%23e94560'/><circle cx='50' cy='38' r='10' fill='white'/></svg>" />
+    <style>
+        /* Gaya tombol bahasa (sama seperti di index.html) */
+        .lang-switch {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 15px;
+            border-top: 1px solid #2a2a4a;
+        }
+        .lang-btn {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 10px;
+            text-align: center;
+            background: #052680;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        .lang-btn:hover {
+            background: #1f2e54;
+        }
+        .lang-btn.lang-active {
+            border-color: #e94560;
+            background: #3e6ee9;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <!-- LOGO -->
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #2a2a4a;">
+            <svg width="34" height="34" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="50" cy="55" rx="40" ry="15" fill="none" stroke="#4a90e2" stroke-width="8" stroke-dasharray="15 10" transform="rotate(-15 50 55)"/>
+                <path d="M50 15 C35 15 25 27 25 40 C25 60 50 85 50 85 C50 85 75 60 75 40 C75 27 65 15 50 15 Z" fill="#e94560"/>
+                <circle cx="50" cy="38" r="10" fill="#1a1a2e"/>
+            </svg>
+            <h2 style="margin: 0; font-size: 24px; color: white; letter-spacing: 0.5px;">
+                Terra<span style="color: #e94560;">Pivot</span>
+            </h2>
+        </div>
+
+        <!-- Menu -->
+        <a href="index.html" class="menu-item" data-i18n="dashboard">🏠 Dashboard</a>
+        <a href="format-converter.html" class="menu-item active" data-i18n="format_converter">📁 Format Converter</a>
+        <a href="projection.html" class="menu-item" data-i18n="projection">📍 Projection (Segera)</a>
+        <a href="#" class="menu-item" data-i18n="geometry_ops">🔧 Geometry Ops (Segera)</a>
+        <a href="#" class="menu-item" data-i18n="attribute">📊 Atribut (Segera)</a>
+        <a href="#" class="menu-item" data-i18n="external_data">🌐 External Data (Segera)</a>
+
+        <!-- Tombol Bahasa -->
+        <div class="lang-switch">
+            <button id="btn-lang-id" class="lang-btn lang-active" onclick="switchLanguage('id')" title="Bahasa Indonesia">IDN</button>
+            <button id="btn-lang-en" class="lang-btn" onclick="switchLanguage('en')" title="English">ENG</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <h1>📁 Format Converter</h1>
+
+        <div class="tab-header">
+            <button id="btn-tab-vector" class="tab-btn active" onclick="bukaTab('tab-vector', this)" data-i18n="tab_vector">🔄 Vector Converter</button>
+            <button id="btn-tab-csv" class="tab-btn" onclick="bukaTab('tab-csv', this)" data-i18n="tab_csv">📍 CSV to Spatial</button>
+            <button id="btn-tab-dms" class="tab-btn" onclick="bukaTab('tab-dms', this)" data-i18n="tab_dms">📐 DMS to DD</button>
+            <button id="btn-tab-s2t" class="tab-btn" onclick="bukaTab('tab-s2t', this)" data-i18n="tab_s2t">📄 Spatial to Table</button>
+        </div>
+
+        <!-- TAB 1: VECTOR CONVERTER -->
+        <div id="tab-vector" class="tool-view">
+            <p data-i18n="vec_desc">Upload SHP (Zip), GeoJSON, KML, atau GPKG. Preview otomatis muncul.</p>
+            <div class="upload-box">
+                <input type="file" id="fileInputVector" accept=".zip,.geojson,.json,.kml,.gpkg" style="flex: 1;" />
+                <select id="formatSelectVector">
+                    <option value="GeoJSON" data-i18n="vec_opt_geojson">Convert ke GeoJSON</option>
+                    <option value="SHP" data-i18n="vec_opt_shp">Convert ke SHP (Zip)</option>
+                    <option value="KML" data-i18n="vec_opt_kml">Convert ke KML</option>
+                    <option value="GPKG" data-i18n="vec_opt_gpkg">Convert ke Geopackage</option>
+                </select>
+                <button type="button" id="btnVector" class="btn" disabled data-i18n="vec_download">⬇️ Download</button>
+            </div>
+            <div id="statusVector" class="status-box" data-i18n="vec_wait">⚪ Menunggu file...</div>
+            <div id="map"></div> 
+        </div>
+
+        <!-- TAB 2: CSV TO SPATIAL -->
+        <div id="tab-csv" class="tool-view" style="display: none;">
+            <p data-i18n="csv_desc">Upload tabel koordinat (Desimal), pilih kolomnya, preview titik di peta, lalu download.</p>
+            <div class="upload-box">
+                <input type="file" id="fileInputCsv" accept=".csv,.xls,.xlsx" style="flex: 1;" />
+            </div>
+            <div id="columnSelector" class="upload-box" style="display: none; background: #eef7ff;">
+                <div style="flex: 1;">
+                    <label data-i18n="csv_col_x">Kolom X (Bujur/Lon):</label><br>
+                    <select id="selX" style="width: 100%; margin-top: 5px;"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="csv_col_y">Kolom Y (Lintang/Lat):</label><br>
+                    <select id="selY" style="width: 100%; margin-top: 5px;"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="csv_col_z">Kolom Z (Elevasi):</label><br>
+                    <select id="selZ" style="width: 100%; margin-top: 5px;"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="csv_col_name">Kolom Nama (Label KML):</label><br>
+                    <select id="selName" style="width: 100%; margin-top: 5px;"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="csv_format_out">Format Output:</label><br>
+                    <select id="formatSelectCsv" style="width: 100%; margin-top: 5px;">
+                        <option value="SHP" data-i18n="csv_opt_shp">SHP (Zip)</option>
+                        <option value="GeoJSON" data-i18n="csv_opt_geojson">GeoJSON</option>
+                        <option value="KML" data-i18n="csv_opt_kml">KML</option>
+                        <option value="GPKG" data-i18n="csv_opt_gpkg">Geopackage</option>
+                    </select>
+                </div>
+                <div style="width: 100%; display: flex; gap: 10px; margin-top: 15px; justify-content: flex-end;">
+                    <button type="button" id="btnPreviewCsv" class="btn" style="background: #005bb5;" data-i18n="csv_preview_btn">👀 Preview Peta</button>
+                    <button type="button" id="btnDownloadCsv" class="btn" data-i18n="csv_download_btn">⬇️ Download File</button>
+                </div>
+            </div>
+            <div id="statusCsv" class="status-box" data-i18n="csv_wait">⚪ Menunggu file CSV/Excel...</div>
+            <div id="mapCsv" style="height: 400px; border-radius: 8px; border: 2px solid #ccc; margin-top: 15px; display: none;"></div>
+        </div>
+
+        <!-- TAB 3: DMS TO DD -->
+        <div id="tab-dms" class="tool-view" style="display: none;">
+            <p data-i18n="dms_desc">Konversi data pengukuran lapangan (Derajat-Menit-Detik) jadi Desimal secara massal.</p>
+            <div class="upload-box">
+                <input type="file" id="fileInputDms" accept=".csv,.xls,.xlsx" style="flex: 1;" />
+            </div>
+
+            <div id="columnSelectorDms" class="upload-box" style="display: none; background: #fff4e6;">
+                <div style="flex: 1;">
+                    <label data-i18n="dms_col_x">Kolom X (Bujur DMS):</label><br>
+                    <select id="selXDms" style="width: 100%; margin-top: 5px;"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="dms_col_y">Kolom Y (Lintang DMS):</label><br>
+                    <select id="selYDms" style="width: 100%; margin-top: 5px;"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="dms_col_name">Kolom Nama (Label KML):</label><br>
+                    <select id="selNameDms" style="width: 100%; margin-top: 5px;"></select>
+                </div>
+                <div style="flex: 1;">
+                    <label data-i18n="dms_format_out">Format Output:</label><br>
+                    <select id="formatSelectDms" style="width: 100%; margin-top: 5px;">
+                        <option value="SHP" data-i18n="dms_opt_shp">SHP (Zip)</option>
+                        <option value="GeoJSON" data-i18n="dms_opt_geojson">GeoJSON</option>
+                        <option value="KML" data-i18n="dms_opt_kml">KML</option>
+                        <option value="GPKG" data-i18n="dms_opt_gpkg">Geopackage</option>
+                    </select>
+                </div>
+                <div style="width: 100%; display: flex; gap: 10px; margin-top: 15px; justify-content: flex-end;">
+                    <button type="button" id="btnPreviewDms" class="btn" style="background: #e67e22;" data-i18n="dms_preview_btn">👀 Preview Peta</button>
+                    <button type="button" id="btnDownloadDms" class="btn" data-i18n="dms_download_btn">⬇️ Convert & Download</button>
+                </div>
+            </div>
+
+            <div id="statusDms" class="status-box" data-i18n="dms_wait">⚪ Menunggu file data DMS...</div>
+            <div id="mapDms" style="height: 400px; border-radius: 8px; border: 2px solid #ccc; margin-top: 15px; display: none;"></div>
+        </div>
+
+        <!-- TAB 4: SPATIAL TO TABLE (DENGAN PREVIEW) -->
+        <div id="tab-s2t" class="tool-view" style="display: none;">
+            <p data-i18n="s2t_desc">Upload file Spasial (SHP, GeoJSON, dll), kita ekstrak Atribut dan Koordinatnya jadi Tabel Excel/CSV.</p>
+            <div class="upload-box">
+                <input type="file" id="fileInputS2t" accept=".zip,.geojson,.json,.kml,.gpkg" style="flex: 1;" />
+                <select id="formatSelectS2t" style="width: 250px;">
+                    <option value="EXCEL" data-i18n="s2t_opt_excel">Tabel Excel (.xlsx) - PALING AMAN</option>
+                    <option value="CSV_COMMA" data-i18n="s2t_opt_csv_comma">CSV - Koma (,)</option>
+                    <option value="CSV_SEMI" data-i18n="s2t_opt_csv_semi">CSV - Titik Koma (;)</option>
+                </select>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" id="btnPreviewS2t" class="btn" style="background: #005bb5;" data-i18n="s2t_preview_btn">👁️ Preview Tabel</button>
+                    <button type="button" id="btnDownloadS2t" class="btn" style="background: #1e8e3e;" data-i18n="s2t_download_btn">⬇️ Download File</button>
+                </div>
+            </div>
+            <div id="statusS2t" class="status-box" data-i18n="s2t_wait">⚪ Menunggu file spasial...</div>
+
+            <div id="tableContainerS2t" style="margin-top: 15px; max-height: 400px; overflow: auto; border: 1px solid #ccc; border-radius: 8px; display: none; background: white;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <thead style="background-color: #f0f4f8; position: sticky; top: 0;"><tr id="tableHeadS2t"></tr></thead>
+                    <tbody id="tableBodyS2t"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== JAVASCRIPT ========== -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="i18n.js"></script>
+    <script>
+        const map = L.map('map').setView([-2.5, 118], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+        let currentLayer = null; 
+
+        let mapCsv = null; let currentLayerCsv = null; 
+        let mapDms = null; let currentLayerDms = null;
+
+        function initMapCsv() { if (mapCsv) return; mapCsv = L.map('mapCsv').setView([-2.5, 118], 5); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapCsv); }
+        function initMapDms() { if (mapDms) return; mapDms = L.map('mapDms').setView([-2.5, 118], 5); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapDms); }
+
+        function bukaTab(namaTab, elemenTombol) {
+            document.querySelectorAll('.tool-view').forEach(tab => tab.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(namaTab).style.display = 'block';
+            elemenTombol.classList.add('active');
+            setTimeout(() => { map.invalidateSize(); if(mapCsv) mapCsv.invalidateSize(); if(mapDms) mapDms.invalidateSize(); }, 100);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const hash = window.location.hash; 
+            if (hash === '#csv') { bukaTab('tab-csv', document.getElementById('btn-tab-csv')); setTimeout(initMapCsv, 150); } 
+            else if (hash === '#dms') { bukaTab('tab-dms', document.getElementById('btn-tab-dms')); setTimeout(initMapDms, 150); } 
+            else if (hash === '#s2t') { bukaTab('tab-s2t', document.getElementById('btn-tab-s2t')); } 
+            else { bukaTab('tab-vector', document.getElementById('btn-tab-vector')); }
+        });
+
+        document.getElementById('btn-tab-csv').addEventListener('click', () => { setTimeout(initMapCsv, 100); });
+        document.getElementById('btn-tab-dms').addEventListener('click', () => { setTimeout(initMapDms, 100); });
+
+        // ====================================================
+// FUNGSI PEMBANTU: Ambil bahasa aktif dari localStorage
+// ====================================================
+function getCurrentLang() {
+    return localStorage.getItem('terrapivot_lang') || 'id';
+}
+
+// ====================================================
+// 1. LOGIKA VECTOR CONVERTER
+// ====================================================
+// Ambil elemen HTML yang dibutuhkan
+const fileInputVector = document.getElementById('fileInputVector');
+const formatSelectVector = document.getElementById('formatSelectVector');
+const btnVector = document.getElementById('btnVector');
+const statusVector = document.getElementById('statusVector');
+
+/**
+ * Fungsi untuk mengubah teks status Vector Converter.
+ * @param {string} text - Teks yang akan ditampilkan.
+ * @param {string} color - Warna teks (default '#333').
+ */
+function setStatusV(text, color = '#333') {
+    statusVector.textContent = text;
+    statusVector.style.color = color;
+}
+
+// ----------------------------------------------------
+// EVENT 1: Saat user memilih file, langsung preview
+// ----------------------------------------------------
+fileInputVector.addEventListener('change', async () => {
+    const file = fileInputVector.files[0];
+    if (!file) return; // Kalau user batal memilih, berhenti
+
+    // Tampilkan status loading
+    setStatusV('⏳ ' + translations[getCurrentLang()].vec_loading, '#1a73e8');
+    btnVector.disabled = true; // Matikan tombol download dulu
+
+    // Siapkan form data untuk dikirim ke backend
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        // Kirim file ke endpoint preview
+        const response = await fetch('https://yusfar-terrapivot-api.hf.space/api/preview-vector', {
+            method: 'POST',
+            body: formData
+        });
+
+        // Kalau respons gagal, lempar error
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail);
+        }
+
+        // Parse hasil GeoJSON dari backend
+        const geojsonObj = await response.json();
+
+        // Hapus layer peta sebelumnya (kalau ada)
+        if (currentLayer) map.removeLayer(currentLayer);
+
+        // Tambahkan layer baru ke peta
+        currentLayer = L.geoJSON(geojsonObj, {
+            style: { color: '#e94560', weight: 2, fillOpacity: 0.2 }
+        }).addTo(map);
+
+        // Zoom ke batas data
+        map.fitBounds(currentLayer.getBounds());
+
+        // Tampilkan status sukses
+        setStatusV(translations[getCurrentLang()].vec_preview_ok, '#1e8e3e');
+        btnVector.disabled = false; // Aktifkan tombol download
+
+    } catch (error) {
+        // Tampilkan pesan error
+        setStatusV(translations[getCurrentLang()].vec_error + error.message, 'red');
+    }
+});
+
+        // ----------------------------------------------------
+        // EVENT 2: Saat user klik tombol download
+        // ----------------------------------------------------
+        btnVector.addEventListener('click', async (e) => {
+            e.preventDefault(); // Mencegah submit form (walaupun tidak ada form)
+
+            const file = fileInputVector.files[0];
+            const formatOut = formatSelectVector.value; // Format output pilihan user
+
+            // Tampilkan status konversi
+            setStatusV('⏳ ' + translations[getCurrentLang()].vec_proc_down + ' ' + formatOut + '...', '#1a73e8');
+            btnVector.disabled = true;
+
+            // Siapkan form data
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('format_output', formatOut);
+
+            try {
+                // Kirim permintaan konversi
+                const response = await fetch('https://yusfar-terrapivot-api.hf.space/api/convert-vector', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail);
+                }
+
+                // Terima file hasil sebagai blob
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+
+                // Buat elemen <a> sementara untuk memicu download
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+
+                // Tentukan ekstensi file output
+                let ext = formatOut.toLowerCase();
+                if (formatOut === 'GPKG') ext = 'gpkg';
+                if (formatOut === 'SHP') ext = 'zip';
+
+                // Ambil nama file asli tanpa ekstensi
+                const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                a.download = `${baseName}.${ext}`;
+
+                // Pasang event listener untuk membersihkan setelah klik download
+                document.body.appendChild(a);
+                a.addEventListener('click', () => {
+                    setTimeout(() => {
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                    }, 100); // Tunda sebentar agar browser menangkap klik
+                });
+
+                // Palsukan klik untuk memulai download
+                a.click();
+
+                // Status sukses
+                setStatusV(translations[getCurrentLang()].vec_convert_ok + ' ' + formatOut + '!', '#1e8e3e');
+
+            } catch (error) {
+                setStatusV(translations[getCurrentLang()].vec_error + error.message, 'red');
+            } finally {
+                // Aktifkan kembali tombol download apapun hasilnya
+                btnVector.disabled = false;
+            }
+        });
+
+        // ====================================================
+        // 2. LOGIKA CSV TO SPATIAL
+        // ====================================================
+        // Ambil elemen HTML yang dibutuhkan
+        const fileInputCsv = document.getElementById('fileInputCsv');
+        const columnSelector = document.getElementById('columnSelector');
+        const selX = document.getElementById('selX');
+        const selY = document.getElementById('selY');
+        const selZ = document.getElementById('selZ');
+        const selName = document.getElementById('selName');
+        const btnPreviewCsv = document.getElementById('btnPreviewCsv');
+        const btnDownloadCsv = document.getElementById('btnDownloadCsv');
+        const statusCsv = document.getElementById('statusCsv');
+        const divMapCsv = document.getElementById('mapCsv');
+
+        /**
+         * Fungsi pembantu: ambil bahasa aktif.
+         * (sudah didefinisikan di bagian Vector, tidak perlu ditulis ulang)
+         * function getCurrentLang() { ... }
+         */
+
+        /**
+         * Fungsi untuk mengubah teks status CSV.
+         * @param {string} text - Teks status.
+         * @param {string} color - Warna teks (default '#333').
+         */
+        function setStatusCsv(text, color = '#333') {
+            statusCsv.textContent = text;
+            statusCsv.style.color = color;
+        }
+
+        // ----------------------------------------------------
+        // EVENT 1: Saat user memilih file CSV/Excel
+        // ----------------------------------------------------
+        fileInputCsv.addEventListener('change', async () => {
+            const file = fileInputCsv.files[0];
+            if (!file) return; // User batal pilih file
+
+            // Tampilkan loading & sembunyikan pengaturan kolom + peta
+            setStatusCsv(translations[getCurrentLang()].csv_loading, '#1a73e8');
+            columnSelector.style.display = 'none';
+            divMapCsv.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // Panggil endpoint baca kolom
+                const response = await fetch('https://yusfar-terrapivot-api.hf.space/api/get-columns', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail);
+                }
+
+                const data = await response.json();
+
+                // Kosongin dropdown, lalu isi dengan opsi default + nama kolom
+                selX.innerHTML = '';
+                selY.innerHTML = '';
+                selZ.innerHTML = '';
+                selName.innerHTML = '';
+
+                // Opsi default untuk Z dan Nama
+                selZ.appendChild(new Option(translations[getCurrentLang()].csv_col_none, "NONE"));
+                selName.appendChild(new Option(translations[getCurrentLang()].csv_name_none, "NONE"));
+
+                // Tambahkan setiap kolom ke dropdown
+                data.columns.forEach(col => {
+                    selX.appendChild(new Option(col, col));
+                    selY.appendChild(new Option(col, col));
+                    selZ.appendChild(new Option(col, col));
+                    selName.appendChild(new Option(col, col));
+                });
+
+                // Tampilkan panel pemilih kolom
+                columnSelector.style.display = 'flex';
+                setStatusCsv(translations[getCurrentLang()].csv_loaded, '#1e8e3e');
+
+            } catch (error) {
+                setStatusCsv(translations[getCurrentLang()].csv_error + error.message, 'red');
+            }
+        });
+
+        // ----------------------------------------------------
+        // FUNGSI UTAMA: Proses data CSV (Preview atau Download)
+        // ----------------------------------------------------
+        /**
+         * @param {string} mode - 'PREVIEW' atau 'DOWNLOAD'
+         */
+        async function prosesDataCsv(mode) {
+            const file = fileInputCsv.files[0];
+            if (!file) {
+                setStatusCsv('❌ Pilih file dulu, bre!', 'red');
+                return;
+            }
+
+            // Tentukan format output
+            const formatOut = mode === 'PREVIEW'
+                ? 'PREVIEW'
+                : document.getElementById('formatSelectCsv').value;
+
+            // Update status
+            const lang = getCurrentLang();
+            const statusText = mode === 'PREVIEW'
+                ? translations[lang].csv_proc_prev
+                : translations[lang].csv_proc_down + ' ' + formatOut + '...';
+            setStatusCsv(statusText, '#1a73e8');
+
+            // Matikan tombol selama proses
+            btnPreviewCsv.disabled = true;
+            btnDownloadCsv.disabled = true;
+
+            // Siapkan data untuk dikirim
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('x_col', selX.value);
+            formData.append('y_col', selY.value);
+            formData.append('z_col', selZ.value);
+            formData.append('name_col', selName.value);
+            formData.append('format_output', formatOut);
+
+            try {
+                const response = await fetch('https://yusfar-terrapivot-api.hf.space/api/table-to-spatial', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail);
+                }
+
+                // --- MODE PREVIEW ---
+                if (mode === 'PREVIEW') {
+                    const geojsonObj = await response.json();
+
+                    // Inisialisasi peta CSV (kalau belum)
+                    initMapCsv();
+                    divMapCsv.style.display = 'block';
+                    setTimeout(() => { mapCsv.invalidateSize(); }, 100);
+
+                    // Hapus layer sebelumnya (kalau ada)
+                    if (currentLayerCsv) mapCsv.removeLayer(currentLayerCsv);
+
+                    // Tambahkan titik ke peta
+                    currentLayerCsv = L.geoJSON(geojsonObj, {
+                        pointToLayer: (feature, latlng) =>
+                            L.circleMarker(latlng, {
+                                radius: 6,
+                                fillColor: "#e94560",
+                                color: "#fff",
+                                weight: 1,
+                                fillOpacity: 0.8
+                            }),
+                        onEachFeature: (feature, layer) => {
+                            let popup = "<div style='max-height:200px; overflow-y:auto;'><b>Data:</b><br>";
+                            if (feature.properties) {
+                                for (let key in feature.properties) {
+                                    popup += `<b>${key}</b>: ${feature.properties[key]}<br>`;
+                                }
+                            }
+                            popup += "</div>";
+                            layer.bindPopup(popup);
+                        }
+                    }).addTo(mapCsv);
+
+                    mapCsv.fitBounds(currentLayerCsv.getBounds());
+                    setStatusCsv(translations[lang].csv_preview_ok, '#1e8e3e');
+                }
+                // --- MODE DOWNLOAD ---
+                else {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+
+                    let ext = formatOut.toLowerCase();
+                    if (formatOut === 'GPKG') ext = 'gpkg';
+                    if (formatOut === 'SHP') ext = 'zip';
+
+                    const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                    a.download = `Spasial_${baseName}.${ext}`;
+
+                    document.body.appendChild(a);
+                    a.addEventListener('click', () => {
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                        }, 100);
+                    });
+                    a.click();
+
+                    setStatusCsv(translations[lang].csv_download_ok + ' ' + formatOut + '!', '#1e8e3e');
+                }
+
+            } catch (error) {
+                setStatusCsv(translations[getCurrentLang()].csv_error + error.message, 'red');
+            } finally {
+                btnPreviewCsv.disabled = false;
+                btnDownloadCsv.disabled = false;
+            }
+        }
+
+        // ----------------------------------------------------
+        // EVENT 2 & 3: Klik tombol Preview atau Download
+        // ----------------------------------------------------
+        btnPreviewCsv.addEventListener('click', (e) => {
+            e.preventDefault();
+            prosesDataCsv('PREVIEW');
+        });
+
+        btnDownloadCsv.addEventListener('click', (e) => {
+            e.preventDefault();
+            prosesDataCsv('DOWNLOAD');
+        });
+
+        // ====================================================
+        // 3. LOGIKA DMS TO DD (BILINGUAL)
+        // ====================================================
+        // Ambil elemen HTML
+        const fileInputDms = document.getElementById('fileInputDms');
+        const columnSelectorDms = document.getElementById('columnSelectorDms');
+        const selXDms = document.getElementById('selXDms');
+        const selYDms = document.getElementById('selYDms');
+        const selNameDms = document.getElementById('selNameDms');
+        const btnPreviewDms = document.getElementById('btnPreviewDms');
+        const btnDownloadDms = document.getElementById('btnDownloadDms');
+        const statusDms = document.getElementById('statusDms');
+        const divMapDms = document.getElementById('mapDms');
+
+        /**
+         * Fungsi pembantu untuk mengubah teks status DMS.
+         * @param {string} text - Teks status.
+         * @param {string} color - Warna teks (default '#333').
+         */
+        function setStatusDms(text, color = '#333') {
+            statusDms.textContent = text;
+            statusDms.style.color = color;
+        }
+
+        // ----------------------------------------------------
+        // EVENT 1: Saat user memilih file DMS/Excel
+        // ----------------------------------------------------
+        fileInputDms.addEventListener('change', async () => {
+            const file = fileInputDms.files[0];
+            if (!file) return; // User batal pilih file
+
+            // Tampilkan loading & sembunyikan pengaturan
+            setStatusDms('⏳ ' + translations[getCurrentLang()].dms_loading, '#1a73e8');
+            columnSelectorDms.style.display = 'none';
+            divMapDms.style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                // Panggil endpoint baca kolom
+                const res = await fetch('https://yusfar-terrapivot-api.hf.space/api/get-columns', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error((await res.json()).detail);
+
+                const data = await res.json();
+
+                // Kosongin dropdown, lalu isi dengan opsi default + nama kolom
+                selXDms.innerHTML = '';
+                selYDms.innerHTML = '';
+                selNameDms.innerHTML = '';
+
+                // Opsi default untuk Nama
+                selNameDms.appendChild(new Option(translations[getCurrentLang()].dms_name_none, "NONE"));
+
+                // Tambahkan setiap kolom ke dropdown
+                data.columns.forEach(col => {
+                    selXDms.appendChild(new Option(col, col));
+                    selYDms.appendChild(new Option(col, col));
+                    selNameDms.appendChild(new Option(col, col));
+                });
+
+                // Tampilkan panel pemilih kolom
+                columnSelectorDms.style.display = 'flex';
+                setStatusDms(translations[getCurrentLang()].dms_loaded, '#1e8e3e');
+
+            } catch (error) {
+                setStatusDms(translations[getCurrentLang()].dms_error + error.message, 'red');
+            }
+        });
+
+        // ----------------------------------------------------
+        // FUNGSI UTAMA: Proses data DMS (Preview atau Download)
+        // ----------------------------------------------------
+        /**
+         * @param {string} mode - 'PREVIEW' atau 'DOWNLOAD'
+         */
+        async function prosesDataDms(mode) {
+            const file = fileInputDms.files[0];
+            if (!file) {
+                setStatusDms('❌ Pilih file dulu, bre!', 'red');
+                return;
+            }
+
+            // Tentukan format output
+            const formatOut = mode === 'PREVIEW'
+                ? 'PREVIEW'
+                : document.getElementById('formatSelectDms').value;
+
+            // Update status
+            const lang = getCurrentLang();
+            const statusText = mode === 'PREVIEW'
+                ? '⏳ ' + translations[lang].dms_proc_prev
+                : '⏳ ' + translations[lang].dms_proc_down + ' ' + formatOut + '...';
+            setStatusDms(statusText, '#e67e22');
+
+            // Matikan tombol selama proses
+            btnPreviewDms.disabled = true;
+            btnDownloadDms.disabled = true;
+
+            // Siapkan data untuk dikirim
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('x_col', selXDms.value);
+            formData.append('y_col', selYDms.value);
+            formData.append('name_col', selNameDms.value);
+            formData.append('format_output', formatOut);
+
+            try {
+                const res = await fetch('https://yusfar-terrapivot-api.hf.space/api/dms-to-spatial', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!res.ok) throw new Error((await res.json()).detail);
+
+                // --- MODE PREVIEW ---
+                if (mode === 'PREVIEW') {
+                    const obj = await res.json();
+                    initMapDms();
+                    divMapDms.style.display = 'block';
+                    setTimeout(() => { mapDms.invalidateSize(); }, 100);
+                    if (currentLayerDms) mapDms.removeLayer(currentLayerDms);
+
+                    currentLayerDms = L.geoJSON(obj, {
+                        pointToLayer: (f, l) => L.circleMarker(l, {
+                            radius: 6,
+                            fillColor: "#e67e22",
+                            color: "#fff",
+                            weight: 1,
+                            fillOpacity: 0.8
+                        }),
+                        onEachFeature: (f, l) => {
+                            let p = "<div style='max-height:200px; overflow-y:auto;'><b>Data:</b><br>";
+                            for (let k in f.properties) {
+                                p += `<b>${k}</b>: ${f.properties[k]}<br>`;
+                            }
+                            p += "</div>";
+                            l.bindPopup(p);
+                        }
+                    }).addTo(mapDms);
+
+                    mapDms.fitBounds(currentLayerDms.getBounds());
+                    setStatusDms(translations[lang].dms_preview_ok, '#1e8e3e'); // ✅ Sudah ada simbol di dictionary
+                }
+                // --- MODE DOWNLOAD ---
+                else {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    let ext = formatOut.toLowerCase();
+                    if (formatOut === 'GPKG') ext = 'gpkg';
+                    if (formatOut === 'SHP') ext = 'zip';
+                    const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                    a.download = `Hasil_DMS_${baseName}.${ext}`;
+
+                    document.body.appendChild(a);
+                    a.addEventListener('click', () => {
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                        }, 100);
+                    });
+                    a.click();
+
+                    // ✅ Dictionary sudah mengandung "✅", jadi tidak perlu tambah simbol lagi
+                    setStatusDms(translations[lang].dms_download_ok + ' ' + formatOut + '!', '#1e8e3e');
+                }
+
+            } catch (error) {
+                setStatusDms(translations[getCurrentLang()].dms_error + error.message, 'red');
+            } finally {
+                btnPreviewDms.disabled = false;
+                btnDownloadDms.disabled = false;
+            }
+        }
+
+        // ----------------------------------------------------
+        // EVENT 2 & 3: Klik tombol Preview atau Download
+        // ----------------------------------------------------
+        btnPreviewDms.addEventListener('click', (e) => {
+            e.preventDefault();
+            prosesDataDms('PREVIEW');
+        });
+
+        btnDownloadDms.addEventListener('click', (e) => {
+            e.preventDefault();
+            prosesDataDms('DOWNLOAD');
+        });
+
+        // ====================================================
+        // 4. LOGIKA SPATIAL TO TABLE (BILINGUAL)
+        // ====================================================
+        // Ambil elemen HTML
+        const fileInputS2t = document.getElementById('fileInputS2t');
+        const btnPreviewS2t = document.getElementById('btnPreviewS2t');
+        const btnDownloadS2t = document.getElementById('btnDownloadS2t');
+        const statusS2t = document.getElementById('statusS2t');
+        const tableContainerS2t = document.getElementById('tableContainerS2t');
+        const tableHeadS2t = document.getElementById('tableHeadS2t');
+        const tableBodyS2t = document.getElementById('tableBodyS2t');
+        const formatSelectS2t = document.getElementById('formatSelectS2t');
+
+        /**
+         * Fungsi pembantu untuk mengubah teks status S2T.
+         * @param {string} text - Teks status.
+         * @param {string} color - Warna teks (default '#333').
+         */
+        function setStatusS2t(text, color = '#333') {
+            statusS2t.textContent = text;
+            statusS2t.style.color = color;
+        }
+
+        // ----------------------------------------------------
+        // FUNGSI UTAMA: Proses data S2T (Preview atau Download)
+        // ----------------------------------------------------
+        /**
+         * @param {string} mode - 'PREVIEW' atau 'DOWNLOAD'
+         */
+        async function prosesDataS2t(mode) {
+            const file = fileInputS2t.files[0];
+            if (!file) {
+                setStatusS2t('❌ Pilih file spasialnya dulu bre!', 'red');
+                return;
+            }
+
+            const formatOut = mode === 'PREVIEW' ? 'PREVIEW' : formatSelectS2t.value;
+
+            // Status loading
+            const lang = getCurrentLang();
+            const statusText = mode === 'PREVIEW'
+                ? '⏳ ' + translations[lang].s2t_loading
+                : '⏳ ' + translations[lang].s2t_loading + ' (' + formatOut + ')...';
+            setStatusS2t(statusText, '#1a73e8');
+
+            btnPreviewS2t.disabled = true;
+            btnDownloadS2t.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('format_output', formatOut);
+
+            try {
+                const response = await fetch('https://yusfar-terrapivot-api.hf.space/api/spatial-to-table', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error((await response.json()).detail);
+
+                // --- MODE PREVIEW ---
+                if (mode === 'PREVIEW') {
+                    const data = await response.json();
+                    tableHeadS2t.innerHTML = '';
+                    tableBodyS2t.innerHTML = '';
+
+                    if (data.length === 0) throw new Error("Data kosong atau tidak ada atribut.");
+
+                    const headers = Object.keys(data[0]);
+                    headers.forEach(h => {
+                        const th = document.createElement('th');
+                        th.textContent = h;
+                        th.style.padding = '10px';
+                        th.style.borderBottom = '2px solid #ccc';
+                        th.style.textAlign = 'left';
+                        tableHeadS2t.appendChild(th);
+                    });
+
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        headers.forEach(h => {
+                            const td = document.createElement('td');
+                            td.textContent = row[h] !== null ? row[h] : '';
+                            td.style.padding = '8px 10px';
+                            td.style.borderBottom = '1px solid #eee';
+                            tr.appendChild(td);
+                        });
+                        tableBodyS2t.appendChild(tr);
+                    });
+
+                    tableContainerS2t.style.display = 'block';
+                    setStatusS2t(translations[lang].s2t_preview_ok, '#1e8e3e');
+                }
+                // --- MODE DOWNLOAD ---
+                else {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+
+                    const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+                    let ext = 'csv';
+                    if (formatOut === 'EXCEL') ext = 'xlsx';
+                    a.download = `Tabel_${baseName}.${ext}`;
+
+                    document.body.appendChild(a);
+                    a.addEventListener('click', () => {
+                        setTimeout(() => {
+                            window.URL.revokeObjectURL(url);
+                            document.body.removeChild(a);
+                        }, 100);
+                    });
+                    a.click();
+
+                    setStatusS2t(translations[lang].s2t_download_ok, '#1e8e3e');
+                }
+
+            } catch (error) {
+                setStatusS2t(translations[getCurrentLang()].s2t_error + error.message, 'red');
+            } finally {
+                btnPreviewS2t.disabled = false;
+                btnDownloadS2t.disabled = false;
+            }
+        }
+
+        // ----------------------------------------------------
+        // EVENT 1 & 2: Klik tombol Preview atau Download
+        // ----------------------------------------------------
+        btnPreviewS2t.addEventListener('click', (e) => {
+            e.preventDefault();
+            prosesDataS2t('PREVIEW');
+        });
+
+        btnDownloadS2t.addEventListener('click', (e) => {
+            e.preventDefault();
+            prosesDataS2t('DOWNLOAD');
+        });
+    </script>
+</body>
+</html>

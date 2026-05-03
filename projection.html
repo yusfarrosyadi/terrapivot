@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Projection | TerraPivot</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><ellipse cx='50' cy='55' rx='40' ry='15' fill='none' stroke='%234a90e2' stroke-width='8' stroke-dasharray='15 10' transform='rotate(-15 50 55)'/><path d='M50 15 C35 15 25 27 25 40 C25 60 50 85 50 85 C50 85 75 60 75 40 C75 27 65 15 50 15 Z' fill='%23e94560'/><circle cx='50' cy='38' r='10' fill='white'/></svg>" />
+    <style>
+        .lang-switch { display: flex; gap: 8px; margin-top: auto; padding-top: 15px; border-top: 1px solid #2a2a4a; }
+        .lang-btn { flex: 1; padding: 6px 10px; font-size: 10px; text-align: center; background: #052680; border: 1px solid transparent; border-radius: 5px; cursor: pointer; transition: all 0.2s; color: white; }
+        .lang-btn:hover { background: #1f2e54; }
+        .lang-btn.lang-active { border-color: #e94560; background: #3e6ee9; font-weight: bold; }
+        .crs-container { display: flex; flex-direction: column; gap: 15px; }
+        .crs-row { display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
+        .crs-group { flex: 1; min-width: 250px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; }
+        .crs-group h3 { font-size: 14px; margin-bottom: 10px; color: #333; border-bottom: 2px solid #eee; padding-bottom: 5px; }
+        .crs-selector { display: flex; gap: 10px; align-items: center; }
+        .crs-selector label { font-weight: bold; font-size: 13px; color: #555; }
+        .crs-selector select, .crs-selector input { padding: 8px; border-radius: 5px; border: 1px solid #ccc; font-size: 13px; }
+        .tab-header { display: flex; gap: 10px; margin-bottom: 25px; border-bottom: 2px solid #ddd; }
+        .tab-btn { background: none; border: none; font-size: 16px; color: #555; cursor: pointer; padding: 10px 15px; transition: 0.2s; }
+        .tab-btn.active { color: #e94560; font-weight: bold; border-bottom: 3px solid #e94560; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 1px solid #2a2a4a;">
+            <svg width="34" height="34" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                <ellipse cx="50" cy="55" rx="40" ry="15" fill="none" stroke="#4a90e2" stroke-width="8" stroke-dasharray="15 10" transform="rotate(-15 50 55)"/>
+                <path d="M50 15 C35 15 25 27 25 40 C25 60 50 85 50 85 C50 85 75 60 75 40 C75 27 65 15 50 15 Z" fill="#e94560"/>
+                <circle cx="50" cy="38" r="10" fill="#1a1a2e"/>
+            </svg>
+            <h2 style="margin: 0; font-size: 24px; color: white; letter-spacing: 0.5px;">Terra<span style="color: #e94560;">Pivot</span></h2>
+        </div>
+        <a href="index.html" class="menu-item" data-i18n="dashboard">🏠 Dashboard</a>
+        <a href="format-converter.html" class="menu-item" data-i18n="format_converter">📁 Format Converter</a>
+        <a href="projection.html" class="menu-item active" data-i18n="projection">📍 Projection</a>
+        <a href="#" class="menu-item" data-i18n="geometry_ops">🔧 Geometry Ops (Segera)</a>
+        <a href="#" class="menu-item" data-i18n="attribute">📊 Atribut (Segera)</a>
+        <a href="#" class="menu-item" data-i18n="external_data">🌐 External Data (Segera)</a>
+        <div class="lang-switch">
+            <button id="btn-lang-id" class="lang-btn lang-active" onclick="switchLanguage('id')" title="Bahasa Indonesia">IDN</button>
+            <button id="btn-lang-en" class="lang-btn" onclick="switchLanguage('en')" title="English">ENG</button>
+        </div>
+    </div>
+
+    <div class="content">
+        <h1 data-i18n="proj_title">🌐 Proyeksi & Koordinat</h1>
+        <p data-i18n="proj_desc">Transformasi WGS84, UTM, TM3, deteksi zona otomatis, dan pemrosesan batch.</p>
+
+        <!-- TAB HEADER -->
+        <div class="tab-header">
+            <button id="btn-tab-single" class="tab-btn active" onclick="bukaTab('tab-single', this)">📄 File Tunggal</button>
+            <button id="btn-tab-batch" class="tab-btn" onclick="bukaTab('tab-batch', this)">📦 Batch Reprojector</button>
+        </div>
+
+        <!-- ==================== TAB SINGLE ==================== -->
+        <div id="tab-single" class="tool-view">
+            <div id="detectedCrsInfo" style="font-size: 14px; margin-bottom: 10px; color: #1e8e3e; font-weight: bold;"></div>
+            <div class="upload-box">
+                <input type="file" id="fileInputProj" accept=".zip,.geojson,.json,.kml,.gpkg" style="flex:1" />
+            </div>
+            <div class="crs-container">
+                <div class="crs-row">
+                    <div class="crs-group">
+                        <h3 data-i18n="proj_src_crs">Sumber CRS:</h3>
+                        <div class="crs-selector">
+                            <select id="sourceCrsType" style="flex: 1;">
+                                <option value="WGS84">WGS 84 (EPSG:4326)</option>
+                                <option value="UTM">UTM</option>
+                                <option value="TM3">TM3</option>
+                            </select>
+                            <div id="utmSourceDiv" style="display: none; gap: 5px; align-items: center;">
+                                <label data-i18n="proj_zone_label">Zona:</label>
+                                <input type="number" id="utmSourceZone" min="1" max="60" value="48" style="width:60px" />
+                                <select id="utmSourceHemi"><option value="S">South</option><option value="N">North</option></select>
+                            </div>
+                            <div id="tm3SourceDiv" style="display: none; gap: 5px; align-items: center;">
+                                <label data-i18n="proj_zone_label">Zona:</label>
+                                <select id="tm3SourceZone" style="width: 80px;"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="crs-group">
+                        <h3 data-i18n="proj_tgt_crs">Target CRS:</h3>
+                        <div class="crs-selector">
+                            <select id="targetCrsType" style="flex: 1;">
+                                <option value="WGS84">WGS 84 (EPSG:4326)</option>
+                                <option value="UTM">UTM</option>
+                                <option value="TM3">TM3</option>
+                            </select>
+                            <div id="utmTargetDiv" style="display: none; gap: 5px; align-items: center;">
+                                <label data-i18n="proj_zone_label">Zona:</label>
+                                <input type="number" id="utmTargetZone" min="1" max="60" value="48" style="width:60px" />
+                                <select id="utmTargetHemi"><option value="S">South</option><option value="N">North</option></select>
+                            </div>
+                            <div id="tm3TargetDiv" style="display: none; gap: 5px; align-items: center;">
+                                <label data-i18n="proj_zone_label">Zona:</label>
+                                <select id="tm3TargetZone" style="width: 80px;"></select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; background: white; padding: 10px; border-radius: 8px; border: 1px solid #ddd;">
+                    <div>
+                        <label data-i18n="proj_output_format">Format Output:</label>
+                        <select id="outputFormat" style="margin-left: 5px;">
+                            <option value="GeoJSON">GeoJSON</option>
+                            <option value="SHP">SHP (Zip)</option>
+                            <option value="KML">KML</option>
+                            <option value="GPKG">Geopackage</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button id="btnPreviewProj" class="btn" style="background:#1a73e8;" data-i18n="proj_preview_btn">👀 Preview Peta</button>
+                        <button id="btnDownloadProj" class="btn" data-i18n="proj_download_btn">⬇️ Download Hasil</button>
+                    </div>
+                </div>
+            </div>
+            <div id="statusProj" class="status-box" style="margin-top: 15px;" data-i18n="proj_wait">⚪ Menunggu file...</div>
+            <div id="mapProj" style="height: 400px; border-radius: 8px; border: 1px solid #ccc; margin-top: 15px;"></div>
+        </div>
+
+        <!-- ==================== TAB BATCH ==================== -->
+        <div id="tab-batch" class="tool-view" style="display: none;">
+            <p data-i18n="batch_desc">Upload file ZIP berisi banyak shapefile. Setiap shapefile akan diproyeksikan ke target CRS, lalu hasilnya diunduh dalam satu ZIP.</p>
+            <div class="upload-box">
+                <input type="file" id="fileInputBatch" accept=".zip" style="flex:1" />
+            </div>
+            <div id="detectedCrsInfoBatch" style="font-size: 14px; margin-bottom: 10px; color: #1e8e3e; font-weight: bold;"></div>
+            <div class="crs-group" style="margin-top:15px; background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd;">
+                <h3 data-i18n="proj_tgt_crs">Target CRS:</h3>
+                <div class="crs-selector">
+                    <select id="targetCrsTypeBatch" style="flex: 1;">
+                        <option value="WGS84">WGS 84 (EPSG:4326)</option>
+                        <option value="UTM">UTM</option>
+                        <option value="TM3">TM3</option>
+                    </select>
+                    <div id="utmTargetDivBatch" style="display: none; gap: 5px; align-items: center;">
+                        <label data-i18n="proj_zone_label">Zona:</label>
+                        <input type="number" id="utmTargetZoneBatch" min="1" max="60" value="48" style="width:60px" />
+                        <select id="utmTargetHemiBatch"><option value="S">South</option><option value="N">North</option></select>
+                    </div>
+                    <div id="tm3TargetDivBatch" style="display: none; gap: 5px; align-items: center;">
+                        <label data-i18n="proj_zone_label">Zona:</label>
+                        <select id="tm3TargetZoneBatch" style="width: 80px;"></select>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:15px; display:flex; gap:10px; justify-content: flex-end;">
+                <button id="btnProcessBatch" class="btn" data-i18n="batch_process_btn">⬇️ Proses & Download</button>
+            </div>
+            <div id="statusBatch" class="status-box" data-i18n="proj_wait">⚪ Menunggu file...</div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="i18n.js"></script>
+    <script>
+        // Peta & variabel global
+        const mapProj = L.map('mapProj').setView([-2.5, 118], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(mapProj);
+        let currentProjLayer = null;
+        const tm3Zones = ['46.2','48.1','48.2','49.1','49.2','50.1','50.2','51.1','51.2','52.1','52.2','53.1','53.2','54.1','54.2','55.1'];
+        function populateTm3Select(selectEl) { selectEl.innerHTML = ''; tm3Zones.forEach(z => selectEl.appendChild(new Option(z, z))); }
+        
+        // Inisialisasi dropdown TM3
+        populateTm3Select(document.getElementById('tm3SourceZone'));
+        populateTm3Select(document.getElementById('tm3TargetZone'));
+        populateTm3Select(document.getElementById('tm3TargetZoneBatch'));
+
+        // Tab navigation
+        function bukaTab(namaTab, elemenTombol) {
+            document.querySelectorAll('.tool-view').forEach(tab => tab.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(namaTab).style.display = 'block';
+            elemenTombol.classList.add('active');
+            setTimeout(() => { mapProj.invalidateSize(); }, 100);
+        }
+
+        // CRS options logic
+        function updateCrsOptions() {
+            const srcType = document.getElementById('sourceCrsType').value;
+            document.getElementById('utmSourceDiv').style.display = srcType === 'UTM' ? 'flex' : 'none';
+            document.getElementById('tm3SourceDiv').style.display = srcType === 'TM3' ? 'flex' : 'none';
+            const tgtType = document.getElementById('targetCrsType').value;
+            document.getElementById('utmTargetDiv').style.display = tgtType === 'UTM' ? 'flex' : 'none';
+            document.getElementById('tm3TargetDiv').style.display = tgtType === 'TM3' ? 'flex' : 'none';
+        }
+        document.getElementById('sourceCrsType').addEventListener('change', updateCrsOptions);
+        document.getElementById('targetCrsType').addEventListener('change', updateCrsOptions);
+        updateCrsOptions();
+
+        // Batch CRS options
+        document.getElementById('targetCrsTypeBatch').addEventListener('change', () => {
+            const type = document.getElementById('targetCrsTypeBatch').value;
+            document.getElementById('utmTargetDivBatch').style.display = type === 'UTM' ? 'flex' : 'none';
+            document.getElementById('tm3TargetDivBatch').style.display = type === 'TM3' ? 'flex' : 'none';
+        });
+
+        function getCrsString(type, utmZone, utmHemi, tm3Zone) {
+            if (type === 'WGS84') return 'EPSG:4326';
+            if (type === 'UTM') return `UTM_${utmZone}${utmHemi}`;
+            if (type === 'TM3') return `TM3_${tm3Zone}`;
+        }
+
+        // Single File logic (identik dengan sebelumnya)
+        function getCurrentLang() { return localStorage.getItem('terrapivot_lang') || 'id'; }
+        const statusProj = document.getElementById('statusProj');
+        function setStatusProj(text, color='#333') { statusProj.textContent = text; statusProj.style.color = color; }
+        let lastDetectedLabel = null;
+
+        document.getElementById('fileInputProj').addEventListener('change', async () => {
+            const file = document.getElementById('fileInputProj').files[0];
+            if (!file) return;
+            const lang = getCurrentLang();
+            setStatusProj(translations[lang].proj_detect, '#1a73e8');
+            const formData = new FormData(); formData.append('file', file);
+            try {
+                const res = await fetch('https://yusfar-terrapivot-api.hf.space/api/detect-crs', { method:'POST', body: formData });
+                if (!res.ok) throw new Error((await res.json()).detail);
+                setSourceCrsFromLabel((await res.json()).crs_label);
+                setStatusProj(translations[lang].proj_ready, '#1e8e3e');
+            } catch(e) {
+                setStatusProj(translations[lang].proj_detect_failed + e.message, 'red');
+            }
+        });
+
+        function setSourceCrsFromLabel(label) {
+            const lang = getCurrentLang();
+            lastDetectedLabel = label;
+            const infoDiv = document.getElementById('detectedCrsInfo');
+            const sourceTypeSelect = document.getElementById('sourceCrsType');
+            if (!label) { infoDiv.textContent = ''; setStatusProj(translations[lang].proj_detect_manual, '#e67e22'); return; }
+            if (label.startsWith('TM3_')) {
+                sourceTypeSelect.value = 'TM3'; updateCrsOptions();
+                setTimeout(() => { const s = document.getElementById('tm3SourceZone'); if(s) for(let o of s.options) if(o.value===label.replace('TM3_','')) { s.value=o.value; break; } }, 50);
+                infoDiv.innerHTML = `${translations[lang].proj_detect_ok} ${label}`;
+            } else if (label.startsWith('UTM_')) {
+                sourceTypeSelect.value = 'UTM'; updateCrsOptions();
+                const m = label.match(/^UTM_(\d+)([NS])$/);
+                if(m) setTimeout(() => { document.getElementById('utmSourceZone').value = m[1]; document.getElementById('utmSourceHemi').value = m[2]; }, 50);
+                infoDiv.innerHTML = `${translations[lang].proj_detect_ok} ${label}`;
+            } else if (label === 'EPSG:4326') {
+                sourceTypeSelect.value = 'WGS84'; updateCrsOptions();
+                infoDiv.innerHTML = `${translations[lang].proj_detect_ok} WGS 84 (EPSG:4326)`;
+            } else {
+                infoDiv.innerHTML = `${translations[lang].proj_detect_unknown} ${label}`;
+            }
+        }
+
+        function updateDetectedCrsDisplay() {
+            if (lastDetectedLabel) { setSourceCrsFromLabel(lastDetectedLabel); setStatusProj(translations[getCurrentLang()].proj_ready, '#1e8e3e'); }
+            else { document.getElementById('detectedCrsInfo').textContent = ''; setStatusProj(translations[getCurrentLang()].proj_wait, '#333'); }
+        }
+
+        async function prosesProj(mode) {
+            const file = document.getElementById('fileInputProj').files[0];
+            if (!file) { setStatusProj('❌ Pilih file dulu bre!', 'red'); return; }
+            const srcCrs = getCrsString(document.getElementById('sourceCrsType').value, document.getElementById('utmSourceZone').value, document.getElementById('utmSourceHemi').value, document.getElementById('tm3SourceZone').value);
+            const tgtCrs = getCrsString(document.getElementById('targetCrsType').value, document.getElementById('utmTargetZone').value, document.getElementById('utmTargetHemi').value, document.getElementById('tm3TargetZone').value);
+            const lang = getCurrentLang();
+            setStatusProj(mode==='PREVIEW' ? translations[lang].proj_proc_prev : translations[lang].proj_proc_down, '#1a73e8');
+            document.getElementById('btnPreviewProj').disabled = true;
+            document.getElementById('btnDownloadProj').disabled = true;
+            const formData = new FormData(); formData.append('file', file); formData.append('source_crs', srcCrs); formData.append('target_crs', tgtCrs); formData.append('output_format', document.getElementById('outputFormat').value);
+            try {
+                const res = await fetch('https://yusfar-terrapivot-api.hf.space/api/convert-projection', { method:'POST', body: formData });
+                if (!res.ok) throw new Error((await res.json()).detail);
+                const data = await res.json();
+                if (mode === 'PREVIEW') {
+                    if(currentProjLayer) mapProj.removeLayer(currentProjLayer);
+                    currentProjLayer = L.geoJSON(data.preview, { style: { color: '#1a73e8', weight: 2, fillOpacity: 0.2 } }).addTo(mapProj);
+                    mapProj.fitBounds(currentProjLayer.getBounds());
+                    setStatusProj(translations[lang].proj_preview_ok, '#1e8e3e');
+                } else {
+                    const byteArr = Uint8Array.from(atob(data.file_data), c => c.charCodeAt(0));
+                    const mime = document.getElementById('outputFormat').value==='GeoJSON'?'application/geo+json':document.getElementById('outputFormat').value==='KML'?'application/vnd.google-earth.kml+xml':document.getElementById('outputFormat').value==='GPKG'?'application/geopackage+sqlite3':'application/zip';
+                    const blob = new Blob([byteArr], { type: mime });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = data.filename;
+                    document.body.appendChild(a);
+                    a.addEventListener('click', () => setTimeout(()=>{ window.URL.revokeObjectURL(url); document.body.removeChild(a); }, 100));
+                    a.click();
+                    setStatusProj(translations[lang].proj_download_ok, '#1e8e3e');
+                }
+            } catch(e) { setStatusProj(translations[lang].proj_error + e.message, 'red'); }
+            finally { document.getElementById('btnPreviewProj').disabled = false; document.getElementById('btnDownloadProj').disabled = false; }
+        }
+        document.getElementById('btnPreviewProj').addEventListener('click', (e) => { e.preventDefault(); prosesProj('PREVIEW'); });
+        document.getElementById('btnDownloadProj').addEventListener('click', (e) => { e.preventDefault(); prosesProj('DOWNLOAD'); });
+
+                // ==================== BATCH REPROJECTOR ====================
+        const fileInputBatch = document.getElementById('fileInputBatch');
+        const statusBatch = document.getElementById('statusBatch');
+        const detectedCrsInfoBatch = document.getElementById('detectedCrsInfoBatch');
+        let lastBatchDetectedLabel = null; // Simpan label CRS batch terakhir
+
+        // Deteksi CRS batch saat file ZIP dipilih
+        fileInputBatch.addEventListener('change', async () => {
+            const file = fileInputBatch.files[0];
+            if (!file) return;
+
+            const lang = getCurrentLang();
+            statusBatch.textContent = translations[lang].batch_detect;
+            statusBatch.style.color = '#1a73e8';
+            detectedCrsInfoBatch.textContent = '';
+            document.getElementById('btnProcessBatch').disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('https://yusfar-terrapivot-api.hf.space/api/detect-crs', { method:'POST', body: formData });
+                if (!res.ok) throw new Error((await res.json()).detail);
+                const data = await res.json();
+                if (data.crs_label) {
+                    lastBatchDetectedLabel = data.crs_label;
+                    detectedCrsInfoBatch.textContent = translations[lang].batch_ready + ' - ' + data.crs_label;
+                    statusBatch.textContent = translations[lang].batch_ready;
+                    statusBatch.style.color = '#1e8e3e';
+                } else {
+                    lastBatchDetectedLabel = null;
+                    detectedCrsInfoBatch.textContent = translations[lang].batch_no_crs;
+                    statusBatch.textContent = translations[lang].batch_ready;
+                    statusBatch.style.color = '#e67e22';
+                }
+            } catch(e) {
+                statusBatch.textContent = translations[lang].batch_detect_failed + e.message;
+                statusBatch.style.color = 'red';
+            } finally {
+                document.getElementById('btnProcessBatch').disabled = false;
+            }
+        });
+
+        // Tombol proses batch
+        document.getElementById('btnProcessBatch').addEventListener('click', async (e) => {
+            e.preventDefault();
+            const file = fileInputBatch.files[0];
+            if (!file) { statusBatch.textContent = '❌ Pilih file ZIP dulu.'; return; }
+
+            const tgtType = document.getElementById('targetCrsTypeBatch').value;
+            let tgtCrs = 'EPSG:4326';
+            if (tgtType === 'UTM') tgtCrs = `UTM_${document.getElementById('utmTargetZoneBatch').value}${document.getElementById('utmTargetHemiBatch').value}`;
+            else if (tgtType === 'TM3') tgtCrs = `TM3_${document.getElementById('tm3TargetZoneBatch').value}`;
+
+            statusBatch.textContent = '⏳ Memproses batch...';
+            document.getElementById('btnProcessBatch').disabled = true;
+
+            const formData = new FormData(); 
+            formData.append('file', file); 
+            formData.append('target_crs', tgtCrs);
+            try {
+                const res = await fetch('https://yusfar-terrapivot-api.hf.space/api/batch-reproject', { method:'POST', body: formData });
+                if (!res.ok) throw new Error((await res.json()).detail);
+                const blob = await res.blob(), url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = 'hasil_reproject.zip';
+                document.body.appendChild(a);
+                a.addEventListener('click', () => setTimeout(()=>{ window.URL.revokeObjectURL(url); document.body.removeChild(a); }, 100));
+                a.click();
+                statusBatch.textContent = '✅ Batch berhasil diproses. File terdownload.';
+            } catch(e) { statusBatch.textContent = '❌ Gagal: ' + e.message; }
+            finally { document.getElementById('btnProcessBatch').disabled = false; }
+        });
+    </script>
+</body>
+</html>
