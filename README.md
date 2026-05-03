@@ -41,8 +41,10 @@ Welcome to the frontend repository of **TerraPivot**, a comprehensive web-based 
 This repository contains the **Client-Side / Frontend** built with HTML5, CSS3, and Vanilla JavaScript without heavy frameworks for fast access. Spatial processing is handled by a separate Python **Backend API** (FastAPI & GeoPandas).
 🔗 **API Engine URL:** `https://yusfar-terrapivot-api.hf.space`
 
-### 👨‍💻 Author
-Developed by **[Yusfar Rosyadi](https://github.com/yusfarrosyadi)** — Mapping Surveyor at the Geospatial Information Agency (BIG) with a background in Cartography and Remote Sensing from Universitas Gadjah Mada (UGM).
+### 👨‍💻 Author & Disclaimer
+Developed by **[Yusfar Rosyadi](https://github.com/yusfarrosyadi)** — a Mapping Surveyor with a background in Cartography and Remote Sensing from Universitas Gadjah Mada (UGM), currently serving at the Geospatial Information Agency (BIG) of Indonesia.
+
+*Disclaimer: TerraPivot is an independent, open-source personal project. It does not represent the official views, products, policies, or endorsements of the Geospatial Information Agency (BIG) or any affiliated institutions.*
 
 ---
 
@@ -77,5 +79,7 @@ Selamat datang di repositori antarmuka (frontend) **TerraPivot**, *web-based geo
 Repositori ini dikhususkan untuk sisi **Client-Side / Frontend** yang dibangun menggunakan HTML5, CSS3, dan Vanilla JavaScript tanpa framework tambahan agar ringan dan cepat diakses. Pemrosesan komputasi geospasial terhubung (*fetch*) langsung dengan **Backend API** berbasis Python (FastAPI & GeoPandas).
 🔗 **URL Mesin API:** `https://yusfar-terrapivot-api.hf.space`
 
-### 👨‍💻 Author
-Dikembangkan oleh **[Yusfar Rosyadi](https://github.com/yusfarrosyadi)** — seorang Surveyor Pemetaan di Badan Informasi Geospasial dengan latar belakang Kartografi dan Penginderaan Jauh dari Universitas Gadjah Mada (UGM).
+### 👨‍💻 Penulis & Penafian (Disclaimer)
+Dikembangkan oleh **[Yusfar Rosyadi](https://github.com/yusfarrosyadi)** — seorang Surveyor Pemetaan dengan latar belakang Kartografi dan Penginderaan Jauh dari Universitas Gadjah Mada (UGM), yang saat ini bertugas di Badan Informasi Geospasial (BIG).
+
+*Disclaimer: TerraPivot adalah proyek inisiatif pribadi yang bersifat sumber terbuka (open-source). Proyek ini murni merupakan dedikasi pengembang untuk komunitas GIS dan tidak mewakili pandangan, produk resmi, kebijakan, maupun dukungan dari Badan Informasi Geospasial (BIG) ataupun institusi terkait lainnya.*
